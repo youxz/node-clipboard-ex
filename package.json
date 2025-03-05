@@ -1,0 +1,14 @@
+{
+  "name": "clipboard-files",
+  "version": "1.0.0",
+  "description": "Native module to get clipboard files",
+  "main": "index.js",
+  "scripts": {
+    "install": "node-gyp rebuild",
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "node-addon-api": "^5.0.0"
+  },
+  "gypfile": true
+}
