@@ -41,6 +41,7 @@ napi_value GetClipboardFiles(napi_env env, napi_callback_info info) {
         return nullptr;
       }
       char* uri_list = (char*)data;
+      std::string originalUriList(uri_list);  // 保存原始数据到局部变量
       fprintf(stderr, "原始剪贴板数据: %s\n", uri_list);
       char* uri = strtok(uri_list, "\r\n");
       while (uri) {
@@ -64,7 +65,7 @@ napi_value GetClipboardFiles(napi_env env, napi_callback_info info) {
   }
 
   if (filePaths.empty()) {
-    fprintf(stderr, "警告：解析到空文件列表，原始URI内容:\n%s\n", uri_list);
+    fprintf(stderr, "警告：解析到空文件列表，原始URI内容:\n%s\n", originalUriList.c_str());
     napi_throw_error(env, "ECLIPBOARD", "剪贴板中没有文件路径或格式不受支持");
   }
   return result;
