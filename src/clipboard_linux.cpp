@@ -21,23 +21,35 @@ napi_value GetClipboardFiles(napi_env env, napi_callback_info info) {
       unsigned long nitems, after;
       unsigned char* data = NULL;
       
-      int prop_status = XGetWindowProperty(display, window, XInternAtom(display, "_GTK_URI_LIST", False),
+      Atom targets[] = {XInternAtom(display, "_GTK_URI_LIST", False), XInternAtom(display, "text/uri-list", False)};
+      
+      for (int j = 0; j < 2; j++) {
+        int prop_status = XGetWindowProperty(display, window, targets[j],
                             0, (~0L), False, AnyPropertyType, &type, &format,
                             &nitems, &after, &data);
-      
-      if (prop_status != Success) {
-        fprintf(stderr, "XGetWindowProperty失败，状态码：%d\n", prop_status);
-      } else if (data) {
-        char* uri_list = (char*)data;
-        char* uri = strtok(uri_list, "\r\n");
-        while (uri) {
-          if (strncmp(uri, "file://", 7) == 0) {
-            filePaths.push_back(uri + 7);
-          }
-          uri = strtok(NULL, "\r\n");
+        
+        if (prop_status == Success && data) {
+          fprintf(stderr, "成功获取剪贴板数据，格式: %s\n", XGetAtomName(display, targets[j]));
+          break;
         }
-        XFree(data);
       }
+      
+      if (!data) {
+        fprintf(stderr, "错误：未找到支持的剪贴板格式\n");
+        XCloseDisplay(display);
+        napi_throw_error(env, "ECLIPBOARD", "不支持的剪贴板格式");
+        return nullptr;
+      }
+      char* uri_list = (char*)data;
+      fprintf(stderr, "原始剪贴板数据: %s\n", uri_list);
+      char* uri = strtok(uri_list, "\r\n");
+      while (uri) {
+        if (strncmp(uri, "file://", 7) == 0) {
+          filePaths.push_back(uri + 7);
+        }
+        uri = strtok(NULL, "\r\n");
+      }
+      XFree(data);
     }
     XCloseDisplay(display);
   }
@@ -52,6 +64,7 @@ napi_value GetClipboardFiles(napi_env env, napi_callback_info info) {
   }
 
   if (filePaths.empty()) {
+    fprintf(stderr, "警告：解析到空文件列表，原始URI内容:\n%s\n", uri_list);
     napi_throw_error(env, "ECLIPBOARD", "剪贴板中没有文件路径或格式不受支持");
   }
   return result;
