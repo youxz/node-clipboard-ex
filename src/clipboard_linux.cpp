@@ -7,6 +7,7 @@
 
 napi_value GetClipboardFiles(napi_env env, napi_callback_info info) {
   std::vector<std::string> filePaths;
+  std::string originalUriList; // 提升到函数作用域
   
   Display* display = XOpenDisplay(NULL);
   if (!display) {
@@ -41,7 +42,7 @@ napi_value GetClipboardFiles(napi_env env, napi_callback_info info) {
         return nullptr;
       }
       char* uri_list = (char*)data;
-      std::string originalUriList(uri_list);  // 保存原始数据到局部变量
+      originalUriList = uri_list;  // 赋值给函数级变量
       fprintf(stderr, "原始剪贴板数据: %s\n", uri_list);
       char* uri = strtok(uri_list, "\r\n");
       while (uri) {
