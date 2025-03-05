@@ -59,10 +59,27 @@ if (!data) {
     napi_throw_error(env, "ECLIPBOARD", "不支持的剪贴板格式");
     return nullptr;
 }
+      // 实现十六进制字符转换
+      auto fromHex = [](char c) {
+        return (c >= '0' && c <= '9') ? c - '0' : tolower(c) - 'a' + 10;
+      };
+
+      // 完整的URL解码处理
       char* uri_list = (char*)data;
-      originalUriList = uri_list;  // 赋值给函数级变量
+      originalUriList = uri_list;
       fprintf(stderr, "原始剪贴板数据: %s\n", uri_list);
-      char* uri = strtok(uri_list, "\r\n");
+
+      std::string decoded;
+      for (char *p = uri_list; *p; p++) {
+        if (*p == '%' && isxdigit(p[1]) && isxdigit(p[2])) {
+          decoded += (fromHex(p[1]) << 4) | fromHex(p[2]);
+          p += 2;
+        } else {
+          decoded += *p;
+        }
+      }
+
+      char* uri = strtok(&decoded[0], "\r\n");
       while (uri) {
         if (strncmp(uri, "file://", 7) == 0) {
           filePaths.push_back(uri + 7);
