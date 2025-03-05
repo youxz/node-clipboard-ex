@@ -3,6 +3,7 @@
 #include <X11/Xatom.h>
 #include <vector>
 #include <string>
+#include <cstring>
 
 napi_value GetClipboardFiles(napi_env env, napi_callback_info info) {
   std::vector<std::string> filePaths;
@@ -11,7 +12,6 @@ napi_value GetClipboardFiles(napi_env env, napi_callback_info info) {
   if (display) {
     Window window = XGetSelectionOwner(display, XInternAtom(display, "CLIPBOARD", False));
     if (window) {
-      Atom targets_atom = XInternAtom(display, "TARGETS", False);
       Atom type;
       int format;
       unsigned long nitems, after;
