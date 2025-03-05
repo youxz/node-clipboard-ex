@@ -39,3 +39,5 @@ node-gyp rebuild
 ```bash
 npm test
 ```
+
+## 该项目使用Trae AI开发，目前只在在MacOs上测试成功
