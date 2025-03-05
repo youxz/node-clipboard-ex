@@ -35,12 +35,30 @@ napi_value GetClipboardFiles(napi_env env, napi_callback_info info) {
         }
       }
       
-      if (!data) {
-        fprintf(stderr, "错误：未找到支持的剪贴板格式\n");
-        XCloseDisplay(display);
-        napi_throw_error(env, "ECLIPBOARD", "不支持的剪贴板格式");
-        return nullptr;
-      }
+if (!data) {
+    fprintf(stderr, "错误：未找到支持的剪贴板格式，当前可用格式:\n");
+    
+    // 调试输出所有支持的原子类型
+    Atom supported_types[] = {
+      XInternAtom(display, "x-special/gnome-copied-files", False),
+      XInternAtom(display, "_GTK_URI_LIST", False),
+      XInternAtom(display, "text/uri-list", False),
+      XInternAtom(display, "UTF8_STRING", False),
+      XInternAtom(display, "COMPOUND_TEXT", False)
+    };
+    
+    for (int i = 0; i < sizeof(supported_types)/sizeof(supported_types[0]); ++i) {
+      char* name = XGetAtomName(display, supported_types[i]);
+      fprintf(stderr, " - %s (%s)\n",
+        name,
+        XGetAtomName(display, supported_types[i]) == name ? "存在" : "不存在");
+      XFree(name);
+    }
+    
+    XCloseDisplay(display);
+    napi_throw_error(env, "ECLIPBOARD", "不支持的剪贴板格式");
+    return nullptr;
+}
       char* uri_list = (char*)data;
       originalUriList = uri_list;  // 赋值给函数级变量
       fprintf(stderr, "原始剪贴板数据: %s\n", uri_list);
