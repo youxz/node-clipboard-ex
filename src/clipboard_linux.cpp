@@ -9,7 +9,11 @@ napi_value GetClipboardFiles(napi_env env, napi_callback_info info) {
   std::vector<std::string> filePaths;
   
   Display* display = XOpenDisplay(NULL);
-  if (display) {
+  if (!display) {
+    napi_throw_error(env, "EOPEN_DISPLAY", "无法打开X11显示连接");
+    return nullptr;
+  }
+  {
     Window window = XGetSelectionOwner(display, XInternAtom(display, "CLIPBOARD", False));
     if (window) {
       Atom type;
@@ -17,9 +21,13 @@ napi_value GetClipboardFiles(napi_env env, napi_callback_info info) {
       unsigned long nitems, after;
       unsigned char* data = NULL;
       
-      if (XGetWindowProperty(display, window, XInternAtom(display, "_GTK_URI_LIST", False),
+      int prop_status = XGetWindowProperty(display, window, XInternAtom(display, "_GTK_URI_LIST", False),
                             0, (~0L), False, AnyPropertyType, &type, &format,
-                            &nitems, &after, &data) == Success && data) {
+                            &nitems, &after, &data);
+      
+      if (prop_status != Success) {
+        fprintf(stderr, "XGetWindowProperty失败，状态码：%d\n", prop_status);
+      } else if (data) {
         char* uri_list = (char*)data;
         char* uri = strtok(uri_list, "\r\n");
         while (uri) {
@@ -43,6 +51,9 @@ napi_value GetClipboardFiles(napi_env env, napi_callback_info info) {
     napi_set_element(env, result, i, file_path);
   }
 
+  if (filePaths.empty()) {
+    napi_throw_error(env, "ECLIPBOARD", "剪贴板中没有文件路径或格式不受支持");
+  }
   return result;
 }
 
