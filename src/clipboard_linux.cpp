@@ -1,116 +1,61 @@
 #include <node_api.h>
 #include <X11/Xlib.h>
-#include <X11/Xatom.h>
+#include <X11/Xutil.h>
 #include <vector>
 #include <string>
-#include <cstring>
 
-napi_value GetClipboardFiles(napi_env env, napi_callback_info info) {
-  std::vector<std::string> filePaths;
-  std::string originalUriList; // 提升到函数作用域
-  
-  Display* display = XOpenDisplay(NULL);
-  if (!display) {
-    napi_throw_error(env, "EOPEN_DISPLAY", "无法打开X11显示连接");
-    return nullptr;
-  }
-  {
-    Window window = XGetSelectionOwner(display, XInternAtom(display, "CLIPBOARD", False));
-    if (window) {
-      Atom type;
-      int format;
-      unsigned long nitems, after;
-      unsigned char* data = NULL;
-      
-      Atom targets[] = {XInternAtom(display, "_GTK_URI_LIST", False), XInternAtom(display, "text/uri-list", False)};
-      
-      for (int j = 0; j < 2; j++) {
-        int prop_status = XGetWindowProperty(display, window, targets[j],
-                            0, (~0L), False, AnyPropertyType, &type, &format,
-                            &nitems, &after, &data);
-        
-        if (prop_status == Success && data) {
-          fprintf(stderr, "成功获取剪贴板数据，格式: %s\n", XGetAtomName(display, targets[j]));
-          break;
+napi_value GetClipboardFiles(napi_env env, napi_callback_info args) {
+    Display* display = XOpenDisplay(NULL);
+    Window window = XCreateSimpleWindow(display, RootWindow(display, 0), 0, 0, 1, 1, 0, 0, 0);
+    Atom clipboard = XInternAtom(display, "CLIPBOARD", False);
+    Atom targets_atom = XInternAtom(display, "TARGETS", False);
+    Atom uri_list_atom = XInternAtom(display, "text/uri-list", False);
+
+    XConvertSelection(display, clipboard, uri_list_atom, targets_atom, window, CurrentTime);
+    XFlush(display);
+
+    XEvent event;
+    XNextEvent(display, &event);
+
+    if (event.type == SelectionNotify && event.xselection.property != None) {
+        char* data;
+        unsigned long length;
+        XGetWindowProperty(display, window, event.xselection.property, 0, (~0L), False, AnyPropertyType,
+                           NULL, NULL, &length, NULL, (unsigned char**)&data);
+
+        std::vector<std::string> filePaths;
+        char* line = strtok(data, "\r\n");
+        while (line != NULL) {
+            if (strstr(line, "file://") == line) {
+                std::string path(line + 7); // 去除"file://"前缀
+                filePaths.push_back(path);
+            }
+            line = strtok(NULL, "\r\n");
         }
-      }
-      
-if (!data) {
-    fprintf(stderr, "错误：未找到支持的剪贴板格式，当前可用格式:\n");
-    
-    // 调试输出所有支持的原子类型
-    Atom supported_types[] = {
-      XInternAtom(display, "x-special/gnome-copied-files", False),
-      XInternAtom(display, "_GTK_URI_LIST", False),
-      XInternAtom(display, "text/uri-list", False),
-      XInternAtom(display, "UTF8_STRING", False),
-      XInternAtom(display, "COMPOUND_TEXT", False)
-    };
-    
-    for (int i = 0; i < sizeof(supported_types)/sizeof(supported_types[0]); ++i) {
-      char* name = XGetAtomName(display, supported_types[i]);
-      fprintf(stderr, " - %s (%s)\n",
-        name,
-        XGetAtomName(display, supported_types[i]) == name ? "存在" : "不存在");
-      XFree(name);
+
+        // 转换为Node.js数组返回
+        napi_value result;
+        napi_create_array_with_length(env, filePaths.size(), &result);
+        for (size_t i = 0; i < filePaths.size(); i++) {
+            napi_value str;
+            napi_create_string_utf8(env, filePaths[i].c_str(), NAPI_AUTO_LENGTH, &str);
+            napi_set_element(env, result, i, str);
+        }
+
+        XFree(data);
+        XDestroyWindow(display, window);
+        XCloseDisplay(display);
+        return result;
     }
-    
+
+    XDestroyWindow(display, window);
     XCloseDisplay(display);
-    napi_throw_error(env, "ECLIPBOARD", "不支持的剪贴板格式");
     return nullptr;
 }
-      // 实现十六进制字符转换
-      auto fromHex = [](char c) {
-        return (c >= '0' && c <= '9') ? c - '0' : tolower(c) - 'a' + 10;
-      };
 
-      // 完整的URL解码处理
-      char* uri_list = (char*)data;
-      originalUriList = uri_list;
-      fprintf(stderr, "原始剪贴板数据: %s\n", uri_list);
-
-      std::string decoded;
-      for (char *p = uri_list; *p; p++) {
-        if (*p == '%' && isxdigit(p[1]) && isxdigit(p[2])) {
-          decoded += (fromHex(p[1]) << 4) | fromHex(p[2]);
-          p += 2;
-        } else {
-          decoded += *p;
-        }
-      }
-
-      char* uri = strtok(&decoded[0], "\r\n");
-      while (uri) {
-        if (strncmp(uri, "file://", 7) == 0) {
-          filePaths.push_back(uri + 7);
-        }
-        uri = strtok(NULL, "\r\n");
-      }
-      XFree(data);
-    }
-    XCloseDisplay(display);
-  }
-
-  napi_value result;
-  napi_create_array(env, &result);
-
-  for (size_t i = 0; i < filePaths.size(); ++i) {
-    napi_value file_path;
-    napi_create_string_utf8(env, filePaths[i].c_str(), NAPI_AUTO_LENGTH, &file_path);
-    napi_set_element(env, result, i, file_path);
-  }
-
-  if (filePaths.empty()) {
-    fprintf(stderr, "警告：解析到空文件列表，原始URI内容:\n%s\n", originalUriList.c_str());
-    napi_throw_error(env, "ECLIPBOARD", "剪贴板中没有文件路径或格式不受支持");
-  }
-  return result;
+NAPI_MODULE_INIT() {
+    napi_value fn;
+    napi_create_function(env, NULL, 0, GetClipboardFiles, NULL, &fn);
+    napi_set_named_property(env, exports, "getClipboardFiles", fn);
+    return exports;
 }
-
-napi_value Init(napi_env env, napi_value exports) {
-  napi_property_descriptor desc = {"getClipboardFiles", 0, GetClipboardFiles, 0, 0, 0, napi_default, 0};
-  napi_define_properties(env, exports, 1, &desc);
-  return exports;
-}
-
-NAPI_MODULE(NODE_GYP_MODULE_NAME, Init)
