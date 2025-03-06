@@ -19,13 +19,25 @@ napi_value GetClipboardFiles(napi_env env, napi_callback_info args) {
     XNextEvent(display, &event);
 
     if (event.type == SelectionNotify && event.xselection.property != None) {
-        char* data;
-        unsigned long length;
+        unsigned char* data = nullptr;
+        unsigned long length = 0;
+        Atom actual_type;
+        int actual_format;
+        unsigned long bytes_after;
+        
         XGetWindowProperty(display, window, event.xselection.property, 0, (~0L), False, AnyPropertyType,
-                           NULL, NULL, &length, NULL, (unsigned char**)&data);
+                          &actual_type, &actual_format, &length, &bytes_after, &data);
+
+        if (!data || length == 0) {
+            XFree(data);
+            return nullptr;
+        }
 
         std::vector<std::string> filePaths;
-        char* line = strtok(data, "\r\n");
+        char* buffer = strdup(reinterpret_cast<char*>(data));
+        XFree(data);
+        
+        char* line = strtok(buffer, "\r\n");
         while (line != NULL) {
             if (strstr(line, "file://") == line) {
                 std::string path(line + 7); // 去除"file://"前缀
@@ -43,7 +55,7 @@ napi_value GetClipboardFiles(napi_env env, napi_callback_info args) {
             napi_set_element(env, result, i, str);
         }
 
-        XFree(data);
+        free(buffer);
         XDestroyWindow(display, window);
         XCloseDisplay(display);
         return result;
