@@ -3,6 +3,7 @@
 #include <X11/Xutil.h>
 #include <vector>
 #include <string>
+#include <cstring>
 
 napi_value GetClipboardFiles(napi_env env, napi_callback_info args) {
     Display* display = XOpenDisplay(NULL);
