@@ -19,7 +19,7 @@
           "defines": ["WIN32_LEAN_AND_MEAN"],
           "msvs_settings": {
             "VCCLCompilerTool": {
-              "AdditionalOptions": ["/std:c++latest"]
+              "AdditionalOptions": ["/std:c++17"]
             }
           }
         }],

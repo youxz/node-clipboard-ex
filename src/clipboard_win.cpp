@@ -3,6 +3,8 @@
 #include <shlobj.h>
 #include <vector>
 #include <string>
+#include <shellapi.h>  // 添加HDROP和DragQueryFileW声明
+#include <codecvt>
 
 napi_value GetClipboardFiles(napi_env env, napi_callback_info info) {
   std::vector<std::wstring> filePaths;
@@ -25,9 +27,9 @@ napi_value GetClipboardFiles(napi_env env, napi_callback_info info) {
 
   for (size_t i = 0; i < filePaths.size(); ++i) {
     napi_value file_path;
-    napi_create_string_utf8(env, 
-      std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(filePaths[i]).c_str(),
-      NAPI_AUTO_LENGTH, &file_path);
+    char utf8Path[MAX_PATH * 4];
+    WideCharToMultiByte(CP_UTF8, 0, filePaths[i].c_str(), -1, utf8Path, sizeof(utf8Path), NULL, NULL);
+    napi_create_string_utf8(env, utf8Path, NAPI_AUTO_LENGTH, &file_path);
     napi_set_element(env, result, i, file_path);
   }
 
