@@ -26,23 +26,25 @@
   "author": "youxz",
   "license": "MIT",
   "scripts": {
-    "test": "jest",
-    "install": "node-gyp-build",
+    "test": "node test.js",
+    "install": "node-gyp rebuild",
+    "prebuild": "prebuildify --runtime node --target=$(node -p process.versions.node) --arch x64",
+    "prebuild:mac": "prebuildify --runtime electron --target=$(electron -p process.versions.electron) --arch x64 --strip",
+    "prebuild:win": "prebuildify --runtime electron --target=$(electron -p process.versions.electron) --arch x64 --strip",
+    "prebuild:linux": "prebuildify --runtime electron --target=$(electron -p process.versions.electron) --arch x64 --strip",
     "prebuildify": "node build.js"
   },
   "dependencies": {
-    "node-addon-api": "^5.0.0",
-    "node-gyp-build": "^4.2.3"
+    "node-addon-api": "^5.0.0"
   },
   "devDependencies": {
-    "fs-extra": "^10.0.0",
-    "jest": "^27.0.6",
-    "node-gyp": "^11.1.0",
-    "prebuildify": "^5.0.1"
+    "prebuildify": "^5.0.1",
+    "electron": "^29.1.0",
+    "fs-extra": "^11.2.0"
   },
   "gypfile": true,
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/youxz/node-clipboard-ex.git"
+    "url": "git+https://github.com/yourusername/node-clipboard-ex.git"
   }
 }
