@@ -16,7 +16,7 @@
     "index.d.ts",
     "prebuilds"
   ],
-  "homepage": "https://github.com/kenan2002/electron-clipboard-ex",
+  "homepage": "https://github.com/youxz/node-clipboard-ex",
   "keywords": [
     "electron",
     "clipboard",
@@ -43,6 +43,6 @@
   "gypfile": true,
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yourusername/node-clipboard-ex.git"
+    "url": "git+https://github.com/youxz/node-clipboard-ex.git"
   }
 }
