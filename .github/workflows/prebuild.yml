@@ -25,9 +25,6 @@ jobs:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
     
-    - name: Install dependencies
-      run: npm install
-    
     - name: Install Linux dependencies
       if: matrix.os == 'ubuntu-latest'
       run: |
@@ -58,7 +55,14 @@ jobs:
           libxcb-xinerama0-dev \
           libxcb-xkb-dev \
           libxkbcommon-dev \
-          libxkbcommon-x11-dev
+          libxkbcommon-x11-dev \
+          build-essential \
+          python3
+    
+    - name: Install dependencies
+      run: npm install
+      env:
+        npm_config_build_from_source: true
     
     - name: Build prebuilds
       run: npm run prebuildify
