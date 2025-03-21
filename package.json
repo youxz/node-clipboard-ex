@@ -3,12 +3,46 @@
   "version": "1.0.0",
   "description": "Native module to get clipboard files",
   "main": "index.js",
+  "os": [
+    "darwin",
+    "win32",
+    "linux"
+  ],
+  "types": "index.d.ts",
+  "files": [
+    "src",
+    "binding.gyp",
+    "index.js",
+    "index.d.ts",
+    "prebuilds"
+  ],
+  "homepage": "https://github.com/kenan2002/electron-clipboard-ex",
+  "keywords": [
+    "electron",
+    "clipboard",
+    "finder",
+    "explorer"
+  ],
+  "author": "youxz",
+  "license": "MIT",
   "scripts": {
-    "install": "node-gyp rebuild",
-    "test": "node test.js"
+    "test": "jest",
+    "install": "node-gyp-build",
+    "prebuildify": "node build.js"
   },
   "dependencies": {
-    "node-addon-api": "^5.0.0"
+    "node-addon-api": "^5.0.0",
+    "node-gyp-build": "^4.2.3"
   },
-  "gypfile": true
+  "devDependencies": {
+    "fs-extra": "^10.0.0",
+    "jest": "^27.0.6",
+    "node-gyp": "^11.1.0",
+    "prebuildify": "^5.0.1"
+  },
+  "gypfile": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/node-clipboard-ex.git"
+  }
 }

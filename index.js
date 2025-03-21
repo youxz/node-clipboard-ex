@@ -1,10 +1,11 @@
-const { getClipboardFiles } = require('./build/Release/clipboard');
-
+const { promisify } = require("util");
+const { getClipboardFiles } = require("node-gyp-build")(__dirname);
 
 const readFilePaths = () => {
-    return getClipboardFiles();
-}   
+  return getClipboardFiles();
+};
 
 module.exports = {
-    readFilePaths,
-}
+  readFilePaths,
+  readFilePathsAsync: promisify(readFilePaths),
+};
